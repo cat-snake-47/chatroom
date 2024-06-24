@@ -1,7 +1,7 @@
 import React, { Component, useEffect, setState, useState } from "react";
 import MessageInput from "../component/MessageInput";
 import dateFormat from "dateformat";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 
 
 const MessageDisplay = () => {
@@ -21,13 +21,8 @@ const MessageDisplay = () => {
   }
   
   function fetchMessages() {
-    console.log("attempting fetch");
     fetch("/api/messages")
       .then((res) => res.json())
-      .then((res) => {
-        console.log(res);
-        return res;
-      })
       .then((data) => {
         setState(data);
         fetchMessagesLongPolling();
@@ -38,10 +33,6 @@ const MessageDisplay = () => {
   function fetchMessagesLongPolling() {
     fetch("/api/messagesLongPolling")
       .then((res) => res.json())
-      .then((res) => {
-        console.log(res);
-        return res;
-      })
       .then((data) => {
         setState(data);
         fetchMessagesLongPolling();
@@ -52,10 +43,10 @@ const MessageDisplay = () => {
         console.log("Get Messages: ERROR", err);
       });
   }
-  
+
   useEffect(fetchMessages, []);
   useEffect(fetchMessagesLongPolling, []);
-
+  
   // send delete message to back end, front end deletes message w/o need for response
   function deleteMessage(el) {
     fetch("/api/messages/" + el.id, { method: "DELETE" })
@@ -89,17 +80,9 @@ const MessageDisplay = () => {
   }
 
   const messages = [];
-  messages.push(
-    <tr>
-      <th>Date</th>
-      <th>Name</th>
-      <th>Message</th>
-      <th>Actions</th>
-    </tr>
-  );
-
+  
+  // add all data from state to messages, with edit and delete buttons if they are from the current user
   let count = 0;
-
   for (const el of state) {
     let actionButtons = <td></td>;
     let editStatus = (
@@ -156,7 +139,11 @@ const MessageDisplay = () => {
     messages.push(
       <tr id={count++} key={el.id}>
         <td className="timestamp">{formatDate(new Date(el.time_stamp))}</td>
-        <td className="usernameMessage">{currUsername}</td>
+        <td className="usernameMessage">
+          <Link className="profileLink" to={`profiles/${currUsername}`} style={{color: "white", textDecoration: "none"}}>
+          {currUsername}
+          </Link>
+        </td>
         <td className="messageContents">
           <p id={`message${el.id}`} style={{ display: "block" }}>
             {el.content} {editStatus}
@@ -179,22 +166,28 @@ const MessageDisplay = () => {
     navigate("/");
   };
 
+  // this one makes the messages table scroll to the bottom any time a new message arrives
+  useEffect(() => {
+    const table = document.getElementById("MessageDisplay");
+    table.scrollTop = table.scrollHeight;
+  })
+  
   return (
     <div>
-      <button className="submitButton" style={{float: "right"}} onClick={logout}>Logout</button>
       <div id="MessageContent">
+      <button class="typicalButton" style={{float: "right"}} onClick={logout}>Logout</button>
         <div id="MessageDisplay">
           <table>
             <tbody>{messages}</tbody>
           </table>
           <br />
         </div>
+        <MessageInput
+          state={state}
+          setState={setState}
+          fetchMessages={fetchMessages}
+        />
       </div>
-      <MessageInput
-        state={state}
-        setState={setState}
-        fetchMessages={fetchMessages}
-      />
     </div>
   );
 };
